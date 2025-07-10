@@ -1,14 +1,18 @@
 # YouTube Description Summarizer
 
-A Chrome extension that provides AI-powered summaries of YouTube video descriptions using Google's Gemini AI.
+🤖 **Get instant AI summaries of YouTube descriptions automatically!**
+
+A Chrome extension that uses Google's Gemini AI to summarize long YouTube video descriptions and displays them prominently in the top-right corner of the page.
 
 ## 🚀 Features
 
-- **AI-Powered Summaries**: Get concise, intelligent summaries of long YouTube descriptions
-- **One-Click Access**: Simple button integration directly on YouTube video pages
-- **Smart Detection**: Automatically detects when descriptions are too short to summarize
-- **Clean UI**: Beautiful, responsive interface that adapts to YouTube's themes
-- **Privacy-Focused**: Your API key stays local, no data tracking
+- **🤖 Automatic AI Summaries**: Instantly get concise summaries when opening YouTube videos
+- **📍 Top-Right Display**: Prominent, non-intrusive placement for maximum visibility
+- **🎯 Smart Detection**: Only summarizes videos with substantial descriptions (100+ characters)
+- **⚡ Zero-Click Experience**: No buttons to press - works automatically
+- **🎨 Beautiful UI**: Smooth animations and responsive design that adapts to YouTube themes
+- **🔒 Privacy-Focused**: Your API keys stay local, zero data tracking
+- **🌙 Dark Mode Support**: Seamlessly matches YouTube's light/dark themes
 
 ## 📦 Installation
 
