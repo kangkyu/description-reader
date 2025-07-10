@@ -3,6 +3,7 @@
 class DescriptionSummarizerBackground {
   constructor() {
     this.geminiApiKey = null;
+    this.youtubeApiKey = null;
     this.init();
   }
 
@@ -29,10 +30,14 @@ class DescriptionSummarizerBackground {
 
   async loadApiKey() {
     try {
-      const result = await chrome.storage.sync.get("geminiApiKey");
+      const result = await chrome.storage.sync.get([
+        "geminiApiKey",
+        "youtubeApiKey",
+      ]);
       this.geminiApiKey = result.geminiApiKey;
+      this.youtubeApiKey = result.youtubeApiKey;
     } catch (error) {
-      console.error("Error loading API key:", error);
+      console.error("Error loading API keys:", error);
     }
   }
 
@@ -44,10 +49,24 @@ class DescriptionSummarizerBackground {
 
       case "setApiKey":
         await this.setApiKey(request.apiKey, sendResponse);
+        await this.loadApiKey(); // Reload keys after setting
         break;
 
       case "getApiKey":
         sendResponse({ success: true, apiKey: this.geminiApiKey });
+        break;
+
+      case "getVideoDescription":
+        await this.getVideoDescription(request.videoId, sendResponse);
+        break;
+
+      case "setYouTubeApiKey":
+        await this.setYouTubeApiKey(request.apiKey, sendResponse);
+        await this.loadApiKey(); // Reload keys after setting
+        break;
+
+      case "getYouTubeApiKey":
+        sendResponse({ success: true, apiKey: this.youtubeApiKey });
         break;
 
       default:
@@ -98,7 +117,7 @@ ${description}
 Summary:`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${this.geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`,
       {
         method: "POST",
         headers: {
@@ -163,6 +182,92 @@ Summary:`;
     } catch (error) {
       console.error("Error saving API key:", error);
       sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  async setYouTubeApiKey(apiKey, sendResponse) {
+    try {
+      await chrome.storage.sync.set({ youtubeApiKey: apiKey });
+      this.youtubeApiKey = apiKey;
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error("Error saving YouTube API key:", error);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  async getVideoDescription(videoId, sendResponse) {
+    try {
+      // Debug: Check if API key is loaded
+      console.log("YouTube API Key loaded:", !!this.youtubeApiKey);
+      console.log(
+        "YouTube API Key length:",
+        this.youtubeApiKey ? this.youtubeApiKey.length : 0,
+      );
+
+      if (!this.youtubeApiKey) {
+        // Try to reload API keys in case they weren't loaded
+        await this.loadApiKey();
+        console.log(
+          "After reload - YouTube API Key loaded:",
+          !!this.youtubeApiKey,
+        );
+
+        if (!this.youtubeApiKey) {
+          sendResponse({
+            success: false,
+            error:
+              "YouTube API key not configured. Please set it in extension options.",
+          });
+          return;
+        }
+      }
+
+      if (!videoId) {
+        sendResponse({
+          success: false,
+          error: "Invalid video ID.",
+        });
+        return;
+      }
+
+      // Call YouTube Data API
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${this.youtubeApiKey}`,
+      );
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("YouTube API quota exceeded or invalid API key.");
+        } else if (response.status === 400) {
+          throw new Error("Invalid video ID or API request.");
+        } else {
+          throw new Error(`YouTube API error: ${response.status}`);
+        }
+      }
+
+      const data = await response.json();
+
+      if (!data.items || data.items.length === 0) {
+        sendResponse({
+          success: false,
+          error: "Video not found or is private/unavailable.",
+        });
+        return;
+      }
+
+      const description = data.items[0].snippet.description || "";
+
+      sendResponse({
+        success: true,
+        description: description,
+      });
+    } catch (error) {
+      console.error("Error getting video description:", error);
+      sendResponse({
+        success: false,
+        error: "Failed to get video description: " + error.message,
+      });
     }
   }
 

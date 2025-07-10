@@ -13,11 +13,16 @@ class SummarizerOptions {
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get("geminiApiKey");
+      const result = await chrome.storage.sync.get([
+        "geminiApiKey",
+        "youtubeApiKey",
+      ]);
       this.apiKey = result.geminiApiKey || "";
+      this.youtubeApiKey = result.youtubeApiKey || "";
     } catch (error) {
       console.error("Error loading settings:", error);
       this.apiKey = "";
+      this.youtubeApiKey = "";
     }
   }
 
@@ -38,6 +43,23 @@ class SummarizerOptions {
     document
       .getElementById("toggleApiKey")
       .addEventListener("click", () => this.toggleApiKeyVisibility());
+
+    // YouTube API Key management
+    document
+      .getElementById("saveYouTubeApiKey")
+      .addEventListener("click", () => this.saveYouTubeApiKey());
+
+    document
+      .getElementById("testYouTubeApiKey")
+      .addEventListener("click", () => this.testYouTubeApiKey());
+
+    document
+      .getElementById("clearYouTubeApiKey")
+      .addEventListener("click", () => this.clearYouTubeApiKey());
+
+    document
+      .getElementById("toggleYouTubeApiKey")
+      .addEventListener("click", () => this.toggleYouTubeApiKeyVisibility());
 
     // Import/Export
     document
@@ -62,14 +84,27 @@ class SummarizerOptions {
 
   updateUI() {
     const apiKeyInput = document.getElementById("apiKey");
-    apiKeyInput.value = this.apiKey;
+    const youtubeApiKeyInput = document.getElementById("youtubeApiKey");
 
-    // Update status
+    apiKeyInput.value = this.apiKey;
+    youtubeApiKeyInput.value = this.youtubeApiKey;
+
+    // Update Gemini API status
     if (this.apiKey) {
-      this.showStatus("API key configured ✓", "success");
+      this.showStatus("Gemini API key configured ✓", "success");
     } else {
       this.showStatus(
         "Please configure your Gemini API key to start using the extension.",
+        "info",
+      );
+    }
+
+    // Update YouTube API status
+    if (this.youtubeApiKey) {
+      this.showYouTubeStatus("YouTube API key configured ✓", "success");
+    } else {
+      this.showYouTubeStatus(
+        "Please configure your YouTube API key for reliable description fetching.",
         "info",
       );
     }
@@ -94,9 +129,19 @@ class SummarizerOptions {
     this.setButtonLoading(saveButton, true);
 
     try {
-      // Save to storage
-      await chrome.storage.sync.set({ geminiApiKey: apiKey });
+      // Save to storage - preserve existing YouTube API key
+      const currentData = await chrome.storage.sync.get(["youtubeApiKey"]);
+      await chrome.storage.sync.set({
+        geminiApiKey: apiKey,
+        youtubeApiKey: currentData.youtubeApiKey || this.youtubeApiKey,
+      });
       this.apiKey = apiKey;
+
+      // Notify background script of the new API key
+      chrome.runtime.sendMessage({
+        action: "setApiKey",
+        apiKey: apiKey,
+      });
 
       this.showStatus("API key saved successfully! ✓", "success");
       this.showNotification("API key saved successfully!", "success");
@@ -124,7 +169,7 @@ class SummarizerOptions {
     try {
       // Test the API key with a simple request
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -135,7 +180,7 @@ class SummarizerOptions {
               {
                 parts: [
                   {
-                    text: "Hello, this is a test message. Please respond if working.",
+                    text: "Hello, this is a test message. Please respond with 'API key working'.",
                   },
                 ],
               },
@@ -284,6 +329,148 @@ class SummarizerOptions {
     setTimeout(() => {
       notification.classList.remove("show");
     }, 3000);
+  }
+
+  async saveYouTubeApiKey() {
+    const youtubeApiKeyInput = document.getElementById("youtubeApiKey");
+    const apiKey = youtubeApiKeyInput.value.trim();
+
+    if (!apiKey) {
+      this.showYouTubeStatus("Please enter a YouTube API key.", "error");
+      return;
+    }
+
+    if (apiKey.length < 20) {
+      this.showYouTubeStatus(
+        "YouTube API key appears to be too short.",
+        "error",
+      );
+      return;
+    }
+
+    const saveButton = document.getElementById("saveYouTubeApiKey");
+    this.setButtonLoading(saveButton, true);
+
+    try {
+      // Save to storage - preserve existing Gemini API key
+      const currentData = await chrome.storage.sync.get(["geminiApiKey"]);
+      await chrome.storage.sync.set({
+        youtubeApiKey: apiKey,
+        geminiApiKey: currentData.geminiApiKey || this.apiKey,
+      });
+      this.youtubeApiKey = apiKey;
+
+      // Notify background script of the new API key
+      chrome.runtime.sendMessage({
+        action: "setYouTubeApiKey",
+        apiKey: apiKey,
+      });
+
+      this.showYouTubeStatus(
+        "YouTube API key saved successfully! ✓",
+        "success",
+      );
+      this.showNotification("YouTube API key saved successfully!", "success");
+    } catch (error) {
+      console.error("Error saving YouTube API key:", error);
+      this.showYouTubeStatus("Failed to save YouTube API key.", "error");
+      this.showNotification("Failed to save YouTube API key.", "error");
+    } finally {
+      this.setButtonLoading(saveButton, false);
+    }
+  }
+
+  async testYouTubeApiKey() {
+    const youtubeApiKeyInput = document.getElementById("youtubeApiKey");
+    const apiKey = youtubeApiKeyInput.value.trim();
+
+    if (!apiKey) {
+      this.showYouTubeStatus(
+        "Please enter a YouTube API key to test.",
+        "error",
+      );
+      return;
+    }
+
+    const testButton = document.getElementById("testYouTubeApiKey");
+    this.setButtonLoading(testButton, true);
+
+    try {
+      // Test with a well-known YouTube video ID
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?id=dQw4w9WgXcQ&part=snippet&key=${apiKey}`,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.items && data.items.length > 0) {
+          this.showYouTubeStatus(
+            "✅ YouTube API key is working correctly!",
+            "success",
+          );
+          this.showNotification("YouTube API key test successful!", "success");
+        } else {
+          this.showYouTubeStatus(
+            "❌ API responded but no video data found.",
+            "error",
+          );
+        }
+      } else {
+        let errorMessage = "❌ YouTube API key test failed.";
+        if (response.status === 400) {
+          errorMessage += " Invalid request or API key format.";
+        } else if (response.status === 403) {
+          errorMessage +=
+            " API key invalid, quota exceeded, or YouTube Data API not enabled.";
+        } else if (response.status === 429) {
+          errorMessage += " Rate limit exceeded.";
+        } else {
+          errorMessage += ` Status: ${response.status}`;
+        }
+        this.showYouTubeStatus(errorMessage, "error");
+      }
+    } catch (error) {
+      console.error("Error testing YouTube API key:", error);
+      this.showYouTubeStatus("❌ Network error during API test.", "error");
+    } finally {
+      this.setButtonLoading(testButton, false);
+    }
+  }
+
+  async clearYouTubeApiKey() {
+    if (!confirm("Are you sure you want to clear your YouTube API key?")) {
+      return;
+    }
+
+    try {
+      await chrome.storage.sync.remove("youtubeApiKey");
+      this.youtubeApiKey = "";
+      document.getElementById("youtubeApiKey").value = "";
+      this.showYouTubeStatus("YouTube API key cleared.", "info");
+      this.showNotification("YouTube API key cleared successfully.", "info");
+    } catch (error) {
+      console.error("Error clearing YouTube API key:", error);
+      this.showYouTubeStatus("Failed to clear YouTube API key.", "error");
+    }
+  }
+
+  toggleYouTubeApiKeyVisibility() {
+    const youtubeApiKeyInput = document.getElementById("youtubeApiKey");
+    const toggleButton = document.getElementById("toggleYouTubeApiKey");
+
+    if (youtubeApiKeyInput.type === "password") {
+      youtubeApiKeyInput.type = "text";
+      toggleButton.textContent = "🙈";
+    } else {
+      youtubeApiKeyInput.type = "password";
+      toggleButton.textContent = "👁️";
+    }
+  }
+
+  showYouTubeStatus(message, type) {
+    const statusElement = document.getElementById("youtubeApiStatus");
+    statusElement.textContent = message;
+    statusElement.className = `status-message ${type}`;
   }
 
   setButtonLoading(button, loading) {

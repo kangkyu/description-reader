@@ -148,42 +148,51 @@ class DescriptionSummarizer {
       return;
     }
 
-    // Extract description
-    const description = this.extractDescription();
-    if (!description) {
-      this.showMessage("No description found for this video.");
-      return;
-    }
-
-    // Check if description is too short
-    if (description.length < 200) {
-      this.showSummary("Description is already short enough!", false);
-      return;
-    }
-
-    // Show loading state
-    this.isProcessing = true;
-    button.innerHTML = `
-      <div class="loading-spinner"></div>
-      <span>Summarizing...</span>
-    `;
-    button.disabled = true;
-
+    // Get video description from YouTube API
     try {
-      // Get summary from background script
       const response = await chrome.runtime.sendMessage({
+        action: "getVideoDescription",
+        videoId: this.currentVideoId,
+      });
+
+      if (!response.success) {
+        this.showMessage(`Error: ${response.error}`);
+        return;
+      }
+
+      const description = response.description;
+      if (!description || description.trim().length === 0) {
+        this.showMessage("This video has no description.");
+        return;
+      }
+
+      // Debug: log the description length and first 100 characters
+      console.log("TubeBoost: Description length:", description.length);
+      console.log(
+        "TubeBoost: Description preview:",
+        description.substring(0, 100) + "...",
+      );
+
+      // Check if description is too short
+      if (description.length < 100) {
+        this.showSummary("Description is already short enough!", false);
+        return;
+      }
+
+      // Continue with summarization using the API description
+      const summaryResponse = await chrome.runtime.sendMessage({
         action: "generateSummary",
         description: description,
       });
 
-      if (response.success) {
-        this.showSummary(response.summary, true);
+      if (summaryResponse.success) {
+        this.showSummary(summaryResponse.summary, true);
       } else {
-        this.showMessage(`Error: ${response.error}`);
+        this.showMessage(`Error: ${summaryResponse.error}`);
       }
     } catch (error) {
-      console.error("Error generating summary:", error);
-      this.showMessage("Failed to generate summary. Please try again.");
+      console.error("Error getting video description:", error);
+      this.showMessage("Failed to get video description. Please try again.");
     } finally {
       this.isProcessing = false;
       button.disabled = false;
