@@ -52,11 +52,11 @@ class DescriptionSummarizer {
     setTimeout(() => {
       this.currentVideoId = this.extractVideoId();
       if (this.currentVideoId) {
-        this.addSummaryButton();
+        this.autoGenerateSummary();
       } else {
         this.removeSummaryElements();
       }
-    }, 1000);
+    }, 2000); // Increased delay to ensure page is fully loaded
   }
 
   extractVideoId() {
@@ -64,37 +64,64 @@ class DescriptionSummarizer {
     return urlParams.get("v");
   }
 
-  addSummaryButton() {
+  async autoGenerateSummary() {
     // Remove existing elements
     this.removeSummaryElements();
 
-    // Find the description area
-    const descriptionContainer = this.findDescriptionContainer();
-    if (!descriptionContainer) {
-      console.log("Description container not found");
-      return;
+    // Check if we're already processing
+    if (this.isProcessing) return;
+
+    // Show loading indicator in top-right corner
+    this.showLoadingIndicator();
+
+    try {
+      // Get video description from YouTube API
+      const response = await chrome.runtime.sendMessage({
+        action: "getVideoDescription",
+        videoId: this.currentVideoId,
+      });
+
+      if (!response.success) {
+        this.showTopRightMessage(`Error: ${response.error}`, false);
+        return;
+      }
+
+      const description = response.description;
+      if (!description || description.trim().length === 0) {
+        this.hideLoadingIndicator();
+        return; // Don't show anything for videos without descriptions
+      }
+
+      // Debug: log the description length and first 100 characters
+      console.log("TubeBoost: Description length:", description.length);
+      console.log(
+        "TubeBoost: Description preview:",
+        description.substring(0, 100) + "...",
+      );
+
+      // Check if description is too short
+      if (description.length < 100) {
+        this.hideLoadingIndicator();
+        return; // Don't show summary for short descriptions
+      }
+
+      // Generate summary
+      const summaryResponse = await chrome.runtime.sendMessage({
+        action: "generateSummary",
+        description: description,
+      });
+
+      if (summaryResponse.success) {
+        this.showTopRightSummary(summaryResponse.summary);
+      } else {
+        this.showTopRightMessage(`Error: ${summaryResponse.error}`, false);
+      }
+    } catch (error) {
+      console.error("Error auto-generating summary:", error);
+      this.showTopRightMessage("Failed to generate summary", false);
+    } finally {
+      this.hideLoadingIndicator();
     }
-
-    // Create summary button
-    const summaryButton = document.createElement("button");
-    summaryButton.id = "description-summary-btn";
-    summaryButton.className = "summary-button";
-    summaryButton.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M14,17H7V15H14M17,13H7V11H17M17,9H7V7H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C19,3.89 18.1,3 17,3Z"/>
-      </svg>
-      <span>AI Summary</span>
-    `;
-
-    summaryButton.addEventListener("click", () => {
-      this.handleSummaryClick();
-    });
-
-    // Insert button near description
-    descriptionContainer.insertBefore(
-      summaryButton,
-      descriptionContainer.firstChild,
-    );
   }
 
   findDescriptionContainer() {
@@ -308,17 +335,113 @@ class DescriptionSummarizer {
     }
   }
 
+  showLoadingIndicator() {
+    this.removeSummaryElements();
+
+    const loadingIndicator = document.createElement("div");
+    loadingIndicator.id = "tubeboost-loading-indicator";
+    loadingIndicator.className = "tubeboost-top-right-loading";
+    loadingIndicator.innerHTML = `
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <span>Generating AI Summary...</span>
+      </div>
+    `;
+
+    document.body.appendChild(loadingIndicator);
+  }
+
+  hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById(
+      "tubeboost-loading-indicator",
+    );
+    if (loadingIndicator) loadingIndicator.remove();
+  }
+
+  showTopRightSummary(summaryText) {
+    this.removeSummaryElements();
+
+    const summaryBox = document.createElement("div");
+    summaryBox.id = "tubeboost-top-right-summary";
+    summaryBox.className = "tubeboost-top-right-summary";
+
+    summaryBox.innerHTML = `
+      <div class="summary-header">
+        <div class="summary-title">
+          🤖 AI Summary
+        </div>
+        <button class="summary-close" id="tubeboost-summary-close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="summary-content">
+        ${summaryText}
+      </div>
+      <div class="summary-footer">Powered by Gemini AI</div>
+    `;
+
+    // Add close functionality
+    summaryBox
+      .querySelector("#tubeboost-summary-close")
+      .addEventListener("click", () => {
+        this.removeSummaryElements();
+      });
+
+    document.body.appendChild(summaryBox);
+  }
+
+  showTopRightMessage(message, isAISummary) {
+    this.removeSummaryElements();
+
+    const messageBox = document.createElement("div");
+    messageBox.id = "tubeboost-top-right-summary";
+    messageBox.className = "tubeboost-top-right-summary error";
+
+    messageBox.innerHTML = `
+      <div class="summary-header">
+        <div class="summary-title">
+          ${isAISummary ? "🤖" : "⚠️"} TubeBoost
+        </div>
+        <button class="summary-close" id="tubeboost-summary-close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="summary-content">
+        ${message}
+      </div>
+    `;
+
+    // Add close functionality
+    messageBox
+      .querySelector("#tubeboost-summary-close")
+      .addEventListener("click", () => {
+        this.removeSummaryElements();
+      });
+
+    document.body.appendChild(messageBox);
+
+    // Auto-hide error messages after 5 seconds
+    if (!isAISummary) {
+      setTimeout(() => {
+        this.removeSummaryElements();
+      }, 5000);
+    }
+  }
+
   removeSummaryElements() {
     const button = document.getElementById("description-summary-btn");
-    const summaryBox = document.getElementById("description-summary-box");
+    const summaryBox = document.getElementById("tubeboost-top-right-summary");
+    const loadingIndicator = document.getElementById(
+      "tubeboost-loading-indicator",
+    );
 
     if (button) button.remove();
     if (summaryBox) summaryBox.remove();
-  }
-
-  removeSummaryBox() {
-    const summaryBox = document.getElementById("description-summary-box");
-    if (summaryBox) summaryBox.remove();
+    if (loadingIndicator) loadingIndicator.remove();
   }
 }
 
