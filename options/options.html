@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Description Summarizer - Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M14,17H7V15H14M17,13H7V11H17M17,9H7V7H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C19,3.89 18.1,3 17,3Z"
+                fill="currentColor"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1>YouTube Description Summarizer</h1>
+            <p>AI-powered summaries using Gemini</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main">
+        <!-- API Key Configuration -->
+        <section class="settings-section">
+          <h2>🔑 Gemini API Configuration</h2>
+
+          <div class="info-box">
+            <div class="info-header">
+              <strong>📋 Quick Setup Guide</strong>
+            </div>
+            <ol class="setup-steps">
+              <li>
+                Visit
+                <a
+                  href="https://makersuite.google.com/app/apikey"
+                  target="_blank"
+                  >Google AI Studio</a
+                >
+              </li>
+              <li>Create a new API key for Gemini</li>
+              <li>Copy the API key and paste it below</li>
+              <li>Click "Save API Key" to start using the extension</li>
+            </ol>
+          </div>
+
+          <div class="form-group">
+            <label for="apiKey">Gemini API Key</label>
+            <div class="input-group">
+              <input
+                type="password"
+                id="apiKey"
+                placeholder="Enter your Gemini API key..."
+                class="api-input"
+              />
+              <button type="button" id="toggleApiKey" class="toggle-btn">
+                👁️
+              </button>
+            </div>
+            <div class="form-help">
+              Your API key is stored locally and never shared with third
+              parties.
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button id="saveApiKey" class="btn-primary">Save API Key</button>
+            <button id="testApiKey" class="btn-secondary">Test API Key</button>
+            <button id="clearApiKey" class="btn-danger">Clear API Key</button>
+          </div>
+
+          <div id="apiStatus" class="status-message"></div>
+        </section>
+
+        <!-- Usage Information -->
+        <section class="settings-section">
+          <h2>📊 Usage & Features</h2>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon">🤖</div>
+              <h3>AI-Powered Summaries</h3>
+              <p>
+                Get concise, intelligent summaries of long YouTube descriptions
+                using Google's Gemini AI.
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">⚡</div>
+              <h3>One-Click Access</h3>
+              <p>
+                Click the "AI Summary" button on any YouTube video to instantly
+                get a summary.
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">🎯</div>
+              <h3>Smart Detection</h3>
+              <p>
+                Automatically detects if a description is too short and skips
+                unnecessary processing.
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">🌙</div>
+              <h3>Theme Support</h3>
+              <p>
+                Beautiful interface that adapts to YouTube's light and dark
+                themes.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Privacy & Security -->
+        <section class="settings-section">
+          <h2>🔒 Privacy & Security</h2>
+
+          <div class="privacy-grid">
+            <div class="privacy-item">
+              <h4>🛡️ Local Storage</h4>
+              <p>
+                Your API key is stored securely in your browser's local storage
+                and never transmitted to our servers.
+              </p>
+            </div>
+
+            <div class="privacy-item">
+              <h4>🔐 Data Processing</h4>
+              <p>
+                Video descriptions are sent directly to Google's Gemini API for
+                processing. No data is stored or logged by this extension.
+              </p>
+            </div>
+
+            <div class="privacy-item">
+              <h4>🏠 No Tracking</h4>
+              <p>
+                This extension doesn't track your usage, collect analytics, or
+                share any personal information.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Help & Support -->
+        <section class="settings-section">
+          <h2>❓ Help & Support</h2>
+
+          <div class="help-section">
+            <details class="faq-item">
+              <summary>How do I get a Gemini API key?</summary>
+              <p>
+                Visit
+                <a
+                  href="https://makersuite.google.com/app/apikey"
+                  target="_blank"
+                  >Google AI Studio</a
+                >, sign in with your Google account, and create a new API key.
+                The service has a generous free tier for personal use.
+              </p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Is the extension free to use?</summary>
+              <p>
+                Yes! The extension itself is completely free. You only need a
+                free Gemini API key from Google, which includes generous usage
+                limits for personal use.
+              </p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Why isn't the summary button appearing?</summary>
+              <p>
+                Make sure you're on a YouTube video page (not the homepage or
+                search results). The button appears near the video description.
+                Try refreshing the page if you don't see it.
+              </p>
+            </details>
+
+            <details class="faq-item">
+              <summary>What if my API key isn't working?</summary>
+              <p>
+                Double-check that you copied the entire API key correctly.
+                Ensure your API key has access to the Gemini API and hasn't
+                exceeded its usage limits.
+              </p>
+            </details>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-content">
+          <p>
+            Made with ❤️ for YouTube viewers •
+            <a href="#" id="exportSettings">Export Settings</a> •
+            <a href="#" id="importSettings">Import Settings</a>
+          </p>
+          <div class="version">v1.0.0</div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Import File Input -->
+    <input
+      type="file"
+      id="importFileInput"
+      accept=".json"
+      style="display: none"
+    />
+
+    <script src="options.js"></script>
+  </body>
+</html>
