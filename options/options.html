@@ -85,64 +85,6 @@
           <div id="apiStatus" class="status-message"></div>
         </section>
 
-        <!-- YouTube API Configuration -->
-        <section class="settings-section">
-          <h2>📺 YouTube Data API Configuration</h2>
-
-          <div class="info-box">
-            <div class="info-header">
-              <strong>📋 YouTube API Setup</strong>
-            </div>
-            <ol class="setup-steps">
-              <li>
-                Visit
-                <a
-                  href="https://console.cloud.google.com/apis/credentials"
-                  target="_blank"
-                  >Google Cloud Console</a
-                >
-              </li>
-              <li>Create a new project or select existing one</li>
-              <li>Enable the "YouTube Data API v3"</li>
-              <li>Create credentials (API Key)</li>
-              <li>Copy the API key and paste it below</li>
-            </ol>
-          </div>
-
-          <div class="form-group">
-            <label for="youtubeApiKey">YouTube Data API Key</label>
-            <div class="input-group">
-              <input
-                type="password"
-                id="youtubeApiKey"
-                placeholder="Enter your YouTube Data API key..."
-                class="api-input"
-              />
-              <button type="button" id="toggleYouTubeApiKey" class="toggle-btn">
-                👁️
-              </button>
-            </div>
-            <div class="form-help">
-              Used to reliably fetch video descriptions directly from YouTube
-              API.
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button id="saveYouTubeApiKey" class="btn-primary">
-              Save YouTube API Key
-            </button>
-            <button id="testYouTubeApiKey" class="btn-secondary">
-              Test YouTube API Key
-            </button>
-            <button id="clearYouTubeApiKey" class="btn-danger">
-              Clear YouTube API Key
-            </button>
-          </div>
-
-          <div id="youtubeApiStatus" class="status-message"></div>
-        </section>
-
         <!-- Usage Information -->
         <section class="settings-section">
           <h2>📊 Usage & Features</h2>

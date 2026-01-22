@@ -75,18 +75,9 @@ class DescriptionSummarizer {
     this.showLoadingIndicator();
 
     try {
-      // Get video description from YouTube API
-      const response = await chrome.runtime.sendMessage({
-        action: "getVideoDescription",
-        videoId: this.currentVideoId,
-      });
+      // Get video description from page DOM
+      const description = this.extractDescription();
 
-      if (!response.success) {
-        this.showTopRightMessage(`Error: ${response.error}`, false);
-        return;
-      }
-
-      const description = response.description;
       if (!description || description.trim().length === 0) {
         this.hideLoadingIndicator();
         return; // Don't show anything for videos without descriptions
@@ -175,19 +166,10 @@ class DescriptionSummarizer {
       return;
     }
 
-    // Get video description from YouTube API
+    // Get video description from page DOM
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "getVideoDescription",
-        videoId: this.currentVideoId,
-      });
+      const description = this.extractDescription();
 
-      if (!response.success) {
-        this.showMessage(`Error: ${response.error}`);
-        return;
-      }
-
-      const description = response.description;
       if (!description || description.trim().length === 0) {
         this.showMessage("This video has no description.");
         return;
@@ -233,6 +215,48 @@ class DescriptionSummarizer {
   }
 
   extractDescription() {
+    // First, try to get description from YouTube's embedded JSON data
+    const jsonDescription = this.extractDescriptionFromInitialData();
+    if (jsonDescription && jsonDescription.length > 10) {
+      console.log("TubeBoost: Got description from ytInitialPlayerResponse");
+      return jsonDescription;
+    }
+
+    // Fallback to DOM scraping if JSON extraction fails
+    console.log("TubeBoost: Falling back to DOM scraping");
+    return this.extractDescriptionFromDOM();
+  }
+
+  extractDescriptionFromInitialData() {
+    // Try accessing the global variable first (faster)
+    if (typeof ytInitialPlayerResponse !== "undefined" && ytInitialPlayerResponse) {
+      const desc = ytInitialPlayerResponse?.videoDetails?.shortDescription;
+      if (desc) return desc;
+    }
+
+    // Parse from script tags if global variable not available
+    const scripts = document.querySelectorAll("script");
+    for (const script of scripts) {
+      const text = script.textContent;
+      if (text && text.includes("ytInitialPlayerResponse")) {
+        // Match the JSON object assignment
+        const match = text.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
+        if (match) {
+          try {
+            const data = JSON.parse(match[1]);
+            const desc = data?.videoDetails?.shortDescription;
+            if (desc) return desc;
+          } catch (e) {
+            console.log("TubeBoost: Failed to parse ytInitialPlayerResponse", e);
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  extractDescriptionFromDOM() {
     // Try multiple selectors to find description text (updated for current YouTube)
     const selectors = [
       // New YouTube layout selectors
