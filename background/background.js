@@ -1,15 +1,18 @@
 // Background Script for YouTube Description Summarizer
 
+const API_BASE_URL = "http://localhost:3000";
+
 class DescriptionSummarizerBackground {
   constructor() {
     this.geminiApiKey = null;
+    this.authToken = null;
     this.init();
   }
 
   init() {
     console.log("Description Summarizer: Background script loaded");
     this.setupEventListeners();
-    this.loadApiKey();
+    this.loadSettings();
   }
 
   setupEventListeners() {
@@ -27,12 +30,13 @@ class DescriptionSummarizerBackground {
     });
   }
 
-  async loadApiKey() {
+  async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(["geminiApiKey"]);
+      const result = await chrome.storage.sync.get(["geminiApiKey", "authToken"]);
       this.geminiApiKey = result.geminiApiKey;
+      this.authToken = result.authToken;
     } catch (error) {
-      console.error("Error loading API key:", error);
+      console.error("Error loading settings:", error);
     }
   }
 
@@ -44,15 +48,62 @@ class DescriptionSummarizerBackground {
 
       case "setApiKey":
         await this.setApiKey(request.apiKey, sendResponse);
-        await this.loadApiKey(); // Reload keys after setting
+        await this.loadSettings();
         break;
 
       case "getApiKey":
         sendResponse({ success: true, apiKey: this.geminiApiKey });
         break;
 
+      case "getAuthStatus":
+        await this.loadSettings();
+        sendResponse({ success: true, isLoggedIn: !!this.authToken });
+        break;
+
+      case "saveSummary":
+        await this.saveSummary(request.data, sendResponse);
+        break;
+
       default:
         sendResponse({ success: false, error: "Unknown action" });
+    }
+  }
+
+  async saveSummary(data, sendResponse) {
+    try {
+      await this.loadSettings();
+
+      if (!this.authToken) {
+        sendResponse({ success: false, error: "Not logged in. Please login in extension options." });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/summaries`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.authToken}`,
+        },
+        body: JSON.stringify({
+          video_id: data.videoId,
+          video_title: data.videoTitle,
+          summary_text: data.summaryText,
+          video_url: data.videoUrl,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        sendResponse({ success: true, summary: result });
+      } else if (response.status === 401) {
+        sendResponse({ success: false, error: "Session expired. Please login again." });
+      } else {
+        const error = await response.json();
+        sendResponse({ success: false, error: error.errors?.join(", ") || "Failed to save summary." });
+      }
+    } catch (error) {
+      console.error("Error saving summary:", error);
+      sendResponse({ success: false, error: "Network error. Is the server running?" });
     }
   }
 

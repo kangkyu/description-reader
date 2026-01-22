@@ -467,6 +467,65 @@ body {
   }
 }
 
+/* Auth Tabs */
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.auth-tab:hover {
+  color: #1976d2;
+}
+
+.auth-tab.active {
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+}
+
+.auth-form {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logged-in-info {
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #2e7d32;
+}
+
+.logged-in-info strong {
+  color: #1b5e20;
+}
+
 /* Loading States */
 .btn-primary:disabled,
 .btn-secondary:disabled,

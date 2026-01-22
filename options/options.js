@@ -1,5 +1,7 @@
 // Options Page JavaScript for YouTube Description Summarizer
 
+const API_BASE_URL = "http://localhost:3000";
+
 class SummarizerOptions {
   constructor() {
     this.init();
@@ -9,15 +11,20 @@ class SummarizerOptions {
     await this.loadSettings();
     this.setupEventListeners();
     this.updateUI();
+    this.updateAuthUI();
   }
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(["geminiApiKey"]);
+      const result = await chrome.storage.sync.get(["geminiApiKey", "authToken", "userEmail"]);
       this.apiKey = result.geminiApiKey || "";
+      this.authToken = result.authToken || "";
+      this.userEmail = result.userEmail || "";
     } catch (error) {
       console.error("Error loading settings:", error);
       this.apiKey = "";
+      this.authToken = "";
+      this.userEmail = "";
     }
   }
 
@@ -58,6 +65,168 @@ class SummarizerOptions {
         this.saveApiKey();
       }
     });
+
+    // Auth tabs
+    document.querySelectorAll(".auth-tab").forEach((tab) => {
+      tab.addEventListener("click", (e) => this.switchAuthTab(e.target.dataset.tab));
+    });
+
+    // Auth forms
+    document.getElementById("loginBtn").addEventListener("click", () => this.login());
+    document.getElementById("registerBtn").addEventListener("click", () => this.register());
+    document.getElementById("logoutBtn").addEventListener("click", () => this.logout());
+
+    // Enter key support for auth forms
+    document.getElementById("loginPassword").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") this.login();
+    });
+    document.getElementById("registerPasswordConfirm").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") this.register();
+    });
+  }
+
+  switchAuthTab(tab) {
+    document.querySelectorAll(".auth-tab").forEach((t) => t.classList.remove("active"));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+
+    document.getElementById("loginForm").style.display = tab === "login" ? "block" : "none";
+    document.getElementById("registerForm").style.display = tab === "register" ? "block" : "none";
+  }
+
+  updateAuthUI() {
+    const authForms = document.getElementById("authForms");
+    const loggedInState = document.getElementById("loggedInState");
+    const userEmailEl = document.getElementById("userEmail");
+
+    if (this.authToken && this.userEmail) {
+      authForms.style.display = "none";
+      loggedInState.style.display = "block";
+      userEmailEl.textContent = this.userEmail;
+    } else {
+      authForms.style.display = "block";
+      loggedInState.style.display = "none";
+    }
+  }
+
+  async login() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    if (!email || !password) {
+      this.showAuthStatus("Please enter email and password.", "error");
+      return;
+    }
+
+    const loginBtn = document.getElementById("loginBtn");
+    this.setButtonLoading(loginBtn, true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email_address: email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await chrome.storage.sync.set({ authToken: data.token, userEmail: data.email });
+        this.authToken = data.token;
+        this.userEmail = data.email;
+        this.updateAuthUI();
+        this.showNotification("Logged in successfully!", "success");
+        document.getElementById("loginEmail").value = "";
+        document.getElementById("loginPassword").value = "";
+      } else {
+        this.showAuthStatus(data.error || "Login failed.", "error");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      this.showAuthStatus("Network error. Is the server running?", "error");
+    } finally {
+      this.setButtonLoading(loginBtn, false);
+    }
+  }
+
+  async register() {
+    const email = document.getElementById("registerEmail").value.trim();
+    const password = document.getElementById("registerPassword").value;
+    const passwordConfirm = document.getElementById("registerPasswordConfirm").value;
+
+    if (!email || !password) {
+      this.showAuthStatus("Please enter email and password.", "error");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      this.showAuthStatus("Passwords do not match.", "error");
+      return;
+    }
+
+    if (password.length < 6) {
+      this.showAuthStatus("Password must be at least 6 characters.", "error");
+      return;
+    }
+
+    const registerBtn = document.getElementById("registerBtn");
+    this.setButtonLoading(registerBtn, true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/registration`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email_address: email,
+          password,
+          password_confirmation: passwordConfirm,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await chrome.storage.sync.set({ authToken: data.token, userEmail: data.email });
+        this.authToken = data.token;
+        this.userEmail = data.email;
+        this.updateAuthUI();
+        this.showNotification("Registered and logged in!", "success");
+        document.getElementById("registerEmail").value = "";
+        document.getElementById("registerPassword").value = "";
+        document.getElementById("registerPasswordConfirm").value = "";
+      } else {
+        this.showAuthStatus(data.errors?.join(", ") || "Registration failed.", "error");
+      }
+    } catch (error) {
+      console.error("Register error:", error);
+      this.showAuthStatus("Network error. Is the server running?", "error");
+    } finally {
+      this.setButtonLoading(registerBtn, false);
+    }
+  }
+
+  async logout() {
+    try {
+      if (this.authToken) {
+        await fetch(`${API_BASE_URL}/session`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${this.authToken}` },
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+
+    await chrome.storage.sync.remove(["authToken", "userEmail"]);
+    this.authToken = "";
+    this.userEmail = "";
+    this.updateAuthUI();
+    this.showNotification("Logged out successfully.", "info");
+  }
+
+  showAuthStatus(message, type) {
+    const statusElement = document.getElementById("authStatus");
+    statusElement.textContent = message;
+    statusElement.className = `status-message ${type}`;
   }
 
   updateUI() {

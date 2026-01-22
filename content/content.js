@@ -5,6 +5,7 @@ class DescriptionSummarizer {
     this.currentVideoId = null;
     this.summaryBox = null;
     this.isProcessing = false;
+    this.currentSummaryText = null;
     this.init();
   }
 
@@ -382,23 +383,45 @@ class DescriptionSummarizer {
     if (loadingIndicator) loadingIndicator.remove();
   }
 
-  showTopRightSummary(summaryText) {
+  async showTopRightSummary(summaryText) {
     this.removeSummaryElements();
+    this.currentSummaryText = summaryText;
 
     const summaryBox = document.createElement("div");
     summaryBox.id = "tubeboost-top-right-summary";
     summaryBox.className = "tubeboost-top-right-summary";
+
+    // Check if user is logged in
+    let isLoggedIn = false;
+    try {
+      const authStatus = await chrome.runtime.sendMessage({ action: "getAuthStatus" });
+      isLoggedIn = authStatus.isLoggedIn;
+    } catch (e) {
+      console.log("Could not check auth status:", e);
+    }
+
+    const saveButtonHtml = isLoggedIn
+      ? `<button class="summary-save-btn" id="tubeboost-summary-save">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+          </svg>
+          Save
+        </button>`
+      : "";
 
     summaryBox.innerHTML = `
       <div class="summary-header">
         <div class="summary-title">
           🤖 AI Summary
         </div>
-        <button class="summary-close" id="tubeboost-summary-close">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-          </svg>
-        </button>
+        <div class="summary-header-actions">
+          ${saveButtonHtml}
+          <button class="summary-close" id="tubeboost-summary-close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+            </svg>
+          </button>
+        </div>
       </div>
       <div class="summary-content">
         ${summaryText}
@@ -413,7 +436,69 @@ class DescriptionSummarizer {
         this.removeSummaryElements();
       });
 
+    // Add save functionality if logged in
+    if (isLoggedIn) {
+      summaryBox
+        .querySelector("#tubeboost-summary-save")
+        .addEventListener("click", () => {
+          this.saveSummary();
+        });
+    }
+
     document.body.appendChild(summaryBox);
+  }
+
+  async saveSummary() {
+    const saveBtn = document.getElementById("tubeboost-summary-save");
+    if (!saveBtn) return;
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `
+      <div class="save-spinner"></div>
+      Saving...
+    `;
+
+    try {
+      const videoTitle = document.querySelector("h1.ytd-video-primary-info-renderer, h1.title")?.textContent?.trim() || "Unknown Title";
+      const videoUrl = window.location.href;
+      const videoId = this.currentVideoId;
+
+      const response = await chrome.runtime.sendMessage({
+        action: "saveSummary",
+        data: {
+          videoId,
+          videoTitle,
+          summaryText: this.currentSummaryText,
+          videoUrl,
+        },
+      });
+
+      if (response.success) {
+        saveBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+          Saved!
+        `;
+        saveBtn.classList.add("saved");
+      } else {
+        saveBtn.innerHTML = `Error`;
+        saveBtn.disabled = false;
+        setTimeout(() => {
+          saveBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+            </svg>
+            Save
+          `;
+        }, 2000);
+        console.error("Save error:", response.error);
+      }
+    } catch (error) {
+      console.error("Error saving summary:", error);
+      saveBtn.innerHTML = `Error`;
+      saveBtn.disabled = false;
+    }
   }
 
   showTopRightMessage(message, isAISummary) {
