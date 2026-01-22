@@ -5,7 +5,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  width: 350px;
+  width: 420px;
   max-width: 90vw;
   background: #ffffff;
   border: 1px solid #e1e5e9;
@@ -67,11 +67,13 @@
 
 .tubeboost-top-right-summary .summary-content {
   padding: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: #3c4043;
   font-size: 14px;
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .tubeboost-top-right-summary.error .summary-content {
@@ -212,7 +214,7 @@ html[dark] .tubeboost-top-right-loading {
   }
 
   .tubeboost-top-right-summary .summary-content {
-    max-height: 150px;
+    max-height: 300px;
     font-size: 13px;
   }
 }

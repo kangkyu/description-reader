@@ -117,7 +117,7 @@ Summary:`;
           ],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 200,
+            maxOutputTokens: 1024,
             topP: 0.8,
             topK: 40,
           },
