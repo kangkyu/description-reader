@@ -4,33 +4,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-YouTube Description Summarizer is a Chrome Extension (Manifest v3) that extracts YouTube video descriptions from the page's embedded JSON data and generates AI summaries using Google's Gemini API. Summaries appear in a top-right overlay on YouTube video pages.
+YouTube Amazon Link Finder is a Chrome Extension (Manifest v3) that extracts Amazon affiliate links from YouTube video descriptions and displays them in an overlay. Users can save videos with their Amazon links to a Rails backend, which also generates AI summaries using Google's Gemini API.
 
 ## Architecture
 
 The extension follows standard Chrome Extension Manifest v3 architecture:
 
-- **content/content.js**: Content script injected into YouTube pages. The `DescriptionSummarizer` class observes URL changes (YouTube is a SPA), extracts descriptions from `ytInitialPlayerResponse` (YouTube's embedded JSON), and requests summaries from the background script via `chrome.runtime.sendMessage`. Falls back to DOM scraping if JSON extraction fails.
+- **content/content.js**: Content script injected into YouTube pages. The `AmazonLinkFinder` class observes URL changes (YouTube is a SPA), extracts descriptions from `ytInitialPlayerResponse` (YouTube's embedded JSON), parses Amazon links using regex patterns, and displays them in an overlay. Falls back to DOM scraping if JSON extraction fails.
 
-- **background/background.js**: Service worker that handles Gemini API calls. The `DescriptionSummarizerBackground` class generates summaries using `gemini-2.5-flash`.
+- **background/background.js**: Service worker that handles:
+  - Gemini API calls for generating summaries (`generateSummary` action)
+  - Saving videos to the backend (`saveSummary` action)
+  - Opening the videos page with auth token injection (`openVideosPage` action)
+  - User authentication status (`getAuthStatus` action)
 
-- **options/options.js**: Settings page for configuring the Gemini API key with test/save/clear functionality.
+- **options/options.js**: Settings page for:
+  - Configuring the Gemini API key
+  - User login/registration with the backend
+  - Import/export settings
+
+- **content/content.css**: Styles for the overlay including dark theme support
 
 ## Key Behaviors
 
-- Descriptions under 100 characters are skipped (no summary shown)
-- Content script uses MutationObserver to detect YouTube navigation (SPA routing)
-- Descriptions extracted from `ytInitialPlayerResponse` JSON (no YouTube API key needed)
-- API key stored in `chrome.storage.sync`
-- Summaries display in a fixed-position overlay in top-right corner
+- Extracts Amazon links from descriptions (amazon.com, amzn.to, smile.amazon, etc.)
+- Content script uses MutationObserver to detect YouTube SPA navigation
+- Descriptions extracted from `ytInitialPlayerResponse` JSON with video ID verification
+- On SPA navigation, may require page reload to fetch new video's description (user is notified)
+- API keys and auth tokens stored in `chrome.storage.sync`
+- "Save" button generates AI summary via Gemini and saves to backend
+- "View all saved videos" opens backend page with auth token passed via URL hash
+
+## Backend Integration
+
+The extension communicates with a Rails backend (URL configured in `API_BASE_URL`):
+- `POST /session` - User login
+- `POST /registration` - User registration
+- `DELETE /session` - User logout
+- `POST /summaries` - Save video with Amazon links and AI summary
+- `GET /amazon_links` - Fetch saved Amazon links (used by web view)
 
 ## Development
 
 1. Load extension: `chrome://extensions/` > Enable Developer mode > Load unpacked > Select this folder
 2. After code changes: Click refresh icon on extension card in `chrome://extensions/`
-3. Test on YouTube video pages with descriptions 100+ characters
+3. Toggle `API_BASE_URL` between localhost and production in both `content.js` and `background.js`
+4. Test on YouTube video pages that have Amazon links in their descriptions
 
 ## API Setup
 
-Only a Gemini API key is required:
-- Get your key at: https://makersuite.google.com/app/apikey
+- **Gemini API key**: Get at https://makersuite.google.com/app/apikey (required for summary generation)
+- **Backend account**: Register via extension options page (required for saving videos)
