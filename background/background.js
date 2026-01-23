@@ -1,7 +1,7 @@
 // Background Script for YouTube Description Summarizer
 
-const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
-// const API_BASE_URL = "http://localhost:3000";
+// const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
+const API_BASE_URL = "http://localhost:3000";
 
 class DescriptionSummarizerBackground {
   constructor() {
@@ -33,9 +33,10 @@ class DescriptionSummarizerBackground {
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(["geminiApiKey", "authToken"]);
+      const result = await chrome.storage.sync.get(["geminiApiKey", "authToken", "userEmail"]);
       this.geminiApiKey = result.geminiApiKey;
       this.authToken = result.authToken;
+      this.userEmail = result.userEmail;
     } catch (error) {
       console.error("Error loading settings:", error);
     }
@@ -58,15 +59,64 @@ class DescriptionSummarizerBackground {
 
       case "getAuthStatus":
         await this.loadSettings();
-        sendResponse({ success: true, isLoggedIn: !!this.authToken });
+        sendResponse({ success: true, isLoggedIn: !!this.authToken, token: this.authToken });
+        break;
+
+      case "getWebLoginCode":
+        await this.getWebLoginCode(sendResponse);
         break;
 
       case "saveSummary":
         await this.saveSummary(request.data, sendResponse);
         break;
 
+      case "openVideosPage":
+        await this.openVideosPage(sendResponse);
+        break;
+
       default:
         sendResponse({ success: false, error: "Unknown action" });
+    }
+  }
+
+  async openVideosPage(sendResponse) {
+    try {
+      await this.loadSettings();
+      const videosUrl = `${API_BASE_URL}/videos`;
+
+      // Create the tab
+      const tab = await chrome.tabs.create({ url: videosUrl });
+
+      // If we have an auth token, inject it into localStorage
+      if (this.authToken) {
+        // Wait for the tab to finish loading
+        await new Promise((resolve) => {
+          const listener = (tabId, changeInfo) => {
+            if (tabId === tab.id && changeInfo.status === "complete") {
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+        });
+
+        // Inject script to set localStorage
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (token, email) => {
+            localStorage.setItem("authToken", token);
+            if (email) localStorage.setItem("userEmail", email);
+            // Reload to pick up the token
+            window.location.reload();
+          },
+          args: [this.authToken, this.userEmail],
+        });
+      }
+
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error("Error opening videos page:", error);
+      sendResponse({ success: false, error: error.message });
     }
   }
 
