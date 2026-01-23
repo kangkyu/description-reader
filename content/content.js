@@ -262,13 +262,26 @@ class AmazonLinkFinder {
       const videoTitle = document.querySelector("h1.ytd-watch-metadata yt-formatted-string, h1.ytd-video-primary-info-renderer, h1.title, #title h1")?.textContent?.trim() || "Untitled";
       const videoUrl = window.location.href;
       const videoId = this.currentVideoId;
+      const description = this.extractDescriptionForVideo(videoId) || "";
+
+      // Generate summary using Gemini
+      let summaryText = "";
+      if (description) {
+        const summaryResponse = await chrome.runtime.sendMessage({
+          action: "generateSummary",
+          description: description,
+        });
+        if (summaryResponse.success) {
+          summaryText = summaryResponse.summary;
+        }
+      }
 
       const response = await chrome.runtime.sendMessage({
         action: "saveSummary",
         data: {
           videoId,
           videoTitle,
-          summaryText: "",
+          summaryText,
           videoUrl,
           amazonLinks: this.currentAmazonLinks || [],
         },
