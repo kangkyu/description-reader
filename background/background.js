@@ -1,6 +1,7 @@
 // Background Script for YouTube Description Summarizer
 
 const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
+// const API_BASE_URL = "http://localhost:3000";
 
 class DescriptionSummarizerBackground {
   constructor() {
@@ -78,6 +79,9 @@ class DescriptionSummarizerBackground {
         return;
       }
 
+      // Build amazon_links_attributes for nested attributes
+      const amazonLinksAttributes = (data.amazonLinks || []).map((url) => ({ url }));
+
       const response = await fetch(`${API_BASE_URL}/summaries`, {
         method: "POST",
         headers: {
@@ -89,6 +93,7 @@ class DescriptionSummarizerBackground {
           video_title: data.videoTitle,
           summary_text: data.summaryText,
           video_url: data.videoUrl,
+          amazon_links_attributes: amazonLinksAttributes,
         }),
       });
 

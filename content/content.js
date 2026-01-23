@@ -6,6 +6,7 @@ class DescriptionSummarizer {
     this.summaryBox = null;
     this.isProcessing = false;
     this.currentSummaryText = null;
+    this.currentAmazonLinks = [];
     this.init();
   }
 
@@ -50,6 +51,10 @@ class DescriptionSummarizer {
   }
 
   onPageChange() {
+    // Clear previous video's data
+    this.currentSummaryText = null;
+    this.currentAmazonLinks = [];
+
     setTimeout(() => {
       this.currentVideoId = this.extractVideoId();
       if (this.currentVideoId) {
@@ -84,6 +89,10 @@ class DescriptionSummarizer {
         return; // Don't show anything for videos without descriptions
       }
 
+      // Extract Amazon affiliate links
+      const amazonLinks = this.extractAmazonLinks(description);
+      console.log("TubeBoost: Found Amazon links:", amazonLinks.length);
+
       // Debug: log the description length and first 100 characters
       console.log("TubeBoost: Description length:", description.length);
       console.log(
@@ -93,6 +102,12 @@ class DescriptionSummarizer {
 
       // Check if description is too short
       if (description.length < 100) {
+        // Even if description is short, show Amazon links if found
+        if (amazonLinks.length > 0) {
+          this.hideLoadingIndicator();
+          this.showTopRightSummary(null, amazonLinks);
+          return;
+        }
         this.hideLoadingIndicator();
         return; // Don't show summary for short descriptions
       }
@@ -104,7 +119,7 @@ class DescriptionSummarizer {
       });
 
       if (summaryResponse.success) {
-        this.showTopRightSummary(summaryResponse.summary);
+        this.showTopRightSummary(summaryResponse.summary, amazonLinks);
       } else {
         this.showTopRightMessage(`Error: ${summaryResponse.error}`, false);
       }
@@ -303,6 +318,35 @@ class DescriptionSummarizer {
     return null;
   }
 
+  extractAmazonLinks(description) {
+    if (!description) return [];
+
+    // Regex patterns for various Amazon link formats
+    const amazonPatterns = [
+      // Full Amazon URLs (various country domains)
+      /https?:\/\/(?:www\.)?amazon\.(com|co\.uk|de|fr|es|it|ca|com\.au|co\.jp|in|com\.br|com\.mx|nl|sg|ae|sa|se|pl|eg|tr)\/[^\s<>"']+/gi,
+      // Amazon short links (amzn.to)
+      /https?:\/\/amzn\.to\/[^\s<>"']+/gi,
+      // Amazon smile links
+      /https?:\/\/smile\.amazon\.[a-z.]+\/[^\s<>"']+/gi,
+    ];
+
+    const links = new Set();
+
+    for (const pattern of amazonPatterns) {
+      const matches = description.match(pattern);
+      if (matches) {
+        matches.forEach((link) => {
+          // Clean up the link (remove trailing punctuation)
+          const cleanedLink = link.replace(/[.,;:!?)]+$/, "");
+          links.add(cleanedLink);
+        });
+      }
+    }
+
+    return Array.from(links);
+  }
+
   showSummary(summaryText, isAISummary) {
     this.removeSummaryBox();
 
@@ -383,9 +427,10 @@ class DescriptionSummarizer {
     if (loadingIndicator) loadingIndicator.remove();
   }
 
-  async showTopRightSummary(summaryText) {
+  async showTopRightSummary(summaryText, amazonLinks = []) {
     this.removeSummaryElements();
     this.currentSummaryText = summaryText;
+    this.currentAmazonLinks = amazonLinks;
 
     const summaryBox = document.createElement("div");
     summaryBox.id = "tubeboost-top-right-summary";
@@ -400,7 +445,7 @@ class DescriptionSummarizer {
       console.log("Could not check auth status:", e);
     }
 
-    const saveButtonHtml = isLoggedIn
+    const saveButtonHtml = isLoggedIn && summaryText
       ? `<button class="summary-save-btn" id="tubeboost-summary-save">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
@@ -409,10 +454,50 @@ class DescriptionSummarizer {
         </button>`
       : "";
 
+    // Build Amazon links HTML
+    const amazonLinksHtml = amazonLinks.length > 0
+      ? `<div class="amazon-links-section">
+          <div class="amazon-links-header">
+            <span class="amazon-icon">🛒</span> Amazon Links (${amazonLinks.length})
+          </div>
+          <div class="amazon-links-list">
+            ${amazonLinks.map((link, index) => `
+              <a href="${link}" target="_blank" rel="noopener noreferrer" class="amazon-link">
+                <span class="amazon-link-number">${index + 1}</span>
+                <span class="amazon-link-url">${this.truncateUrl(link)}</span>
+                <svg class="amazon-link-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                </svg>
+              </a>
+            `).join("")}
+          </div>
+        </div>`
+      : `<div class="amazon-links-section">
+          <div class="amazon-links-header">
+            <span class="amazon-icon">🛒</span> Amazon Links
+          </div>
+          <div class="amazon-links-empty">
+            There's no amazon affiliate links found
+          </div>
+        </div>`;
+
+    // Determine header title based on content
+    const headerTitle = summaryText ? "🤖 AI Summary" : "🛒 Amazon Links";
+
+    // Build summary content HTML
+    const summaryContentHtml = summaryText
+      ? `<div class="summary-content">${summaryText}</div>`
+      : "";
+
+    // Build footer HTML
+    const footerHtml = summaryText
+      ? '<div class="summary-footer">Powered by Gemini AI</div>'
+      : "";
+
     summaryBox.innerHTML = `
       <div class="summary-header">
         <div class="summary-title">
-          🤖 AI Summary
+          ${headerTitle}
         </div>
         <div class="summary-header-actions">
           ${saveButtonHtml}
@@ -423,10 +508,9 @@ class DescriptionSummarizer {
           </button>
         </div>
       </div>
-      <div class="summary-content">
-        ${summaryText}
-      </div>
-      <div class="summary-footer">Powered by Gemini AI</div>
+      ${summaryContentHtml}
+      ${amazonLinksHtml}
+      ${footerHtml}
     `;
 
     // Add close functionality
@@ -437,7 +521,7 @@ class DescriptionSummarizer {
       });
 
     // Add save functionality if logged in
-    if (isLoggedIn) {
+    if (isLoggedIn && summaryText) {
       summaryBox
         .querySelector("#tubeboost-summary-save")
         .addEventListener("click", () => {
@@ -446,6 +530,36 @@ class DescriptionSummarizer {
     }
 
     document.body.appendChild(summaryBox);
+  }
+
+  truncateUrl(url) {
+    // Extract meaningful part of the URL for display
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+
+      // For amzn.to links, show the full short URL
+      if (urlObj.hostname === "amzn.to") {
+        return url.replace(/^https?:\/\//, "");
+      }
+
+      // For full Amazon URLs, try to extract product info
+      const dpMatch = path.match(/\/dp\/([A-Z0-9]+)/i);
+      if (dpMatch) {
+        return `amazon.../${dpMatch[1]}`;
+      }
+
+      const gpMatch = path.match(/\/gp\/product\/([A-Z0-9]+)/i);
+      if (gpMatch) {
+        return `amazon.../${gpMatch[1]}`;
+      }
+
+      // Fallback: truncate to reasonable length
+      const displayUrl = url.replace(/^https?:\/\/(www\.)?/, "");
+      return displayUrl.length > 40 ? displayUrl.substring(0, 37) + "..." : displayUrl;
+    } catch {
+      return url.length > 40 ? url.substring(0, 37) + "..." : url;
+    }
   }
 
   async saveSummary() {
@@ -470,6 +584,7 @@ class DescriptionSummarizer {
           videoTitle,
           summaryText: this.currentSummaryText,
           videoUrl,
+          amazonLinks: this.currentAmazonLinks || [],
         },
       });
 
