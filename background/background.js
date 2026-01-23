@@ -82,37 +82,18 @@ class DescriptionSummarizerBackground {
   async openVideosPage(sendResponse) {
     try {
       await this.loadSettings();
-      const videosUrl = `${API_BASE_URL}/videos`;
 
-      // Create the tab
-      const tab = await chrome.tabs.create({ url: videosUrl });
+      let videosUrl = `${API_BASE_URL}/videos`;
 
-      // If we have an auth token, inject it into localStorage
+      // Pass token via URL hash (not sent to server)
       if (this.authToken) {
-        // Wait for the tab to finish loading
-        await new Promise((resolve) => {
-          const listener = (tabId, changeInfo) => {
-            if (tabId === tab.id && changeInfo.status === "complete") {
-              chrome.tabs.onUpdated.removeListener(listener);
-              resolve();
-            }
-          };
-          chrome.tabs.onUpdated.addListener(listener);
-        });
-
-        // Inject script to set localStorage
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: (token, email) => {
-            localStorage.setItem("authToken", token);
-            if (email) localStorage.setItem("userEmail", email);
-            // Reload to pick up the token
-            window.location.reload();
-          },
-          args: [this.authToken, this.userEmail],
-        });
+        const params = new URLSearchParams();
+        params.set("token", this.authToken);
+        if (this.userEmail) params.set("email", this.userEmail);
+        videosUrl += "#" + params.toString();
       }
 
+      await chrome.tabs.create({ url: videosUrl });
       sendResponse({ success: true });
     } catch (error) {
       console.error("Error opening videos page:", error);
