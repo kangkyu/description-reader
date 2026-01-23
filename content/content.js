@@ -1,7 +1,7 @@
 // Content Script for Amazon Link Finder
 
-// const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
+// const API_BASE_URL = "http://localhost:3000";
 
 class AmazonLinkFinder {
   constructor() {
@@ -41,17 +41,36 @@ class AmazonLinkFinder {
   }
 
   onPageChange() {
-    // Clear previous video's data
+    // Clear previous video's data immediately
     this.currentAmazonLinks = [];
+    this.removeOverlay();
 
-    setTimeout(() => {
-      this.currentVideoId = this.extractVideoId();
-      if (this.currentVideoId) {
-        this.findAndShowAmazonLinks();
-      } else {
-        this.removeOverlay();
-      }
-    }, 2000); // Delay to ensure page is fully loaded
+    const newVideoId = this.extractVideoId();
+    if (!newVideoId) return;
+
+    this.currentVideoId = newVideoId;
+    this.waitForDescriptionAndShow(newVideoId);
+  }
+
+  waitForDescriptionAndShow(videoId, attempts = 0) {
+    const maxAttempts = 5;
+    const delay = 1000;
+
+    // Check if we've navigated away
+    if (this.currentVideoId !== videoId) return;
+
+    const description = this.extractDescriptionForVideo(videoId);
+
+    if (description) {
+      const amazonLinks = this.extractAmazonLinks(description);
+      console.log("Amazon Link Finder: Found", amazonLinks.length, "links for video", videoId);
+      this.showOverlay(amazonLinks);
+    } else if (attempts < maxAttempts) {
+      setTimeout(() => this.waitForDescriptionAndShow(videoId, attempts + 1), delay);
+    } else {
+      console.log("Amazon Link Finder: Could not get description after", maxAttempts, "attempts");
+      this.showOverlay([]);
+    }
   }
 
   extractVideoId() {
@@ -59,46 +78,8 @@ class AmazonLinkFinder {
     return urlParams.get("v");
   }
 
-  findAndShowAmazonLinks() {
-    this.removeOverlay();
-
-    try {
-      const description = this.extractDescription();
-
-      if (!description || description.trim().length === 0) {
-        this.showOverlay([]);
-        return;
-      }
-
-      const amazonLinks = this.extractAmazonLinks(description);
-      console.log("Amazon Link Finder: Found", amazonLinks.length, "links");
-
-      this.showOverlay(amazonLinks);
-    } catch (error) {
-      console.error("Error extracting Amazon links:", error);
-      this.showOverlay([]);
-    }
-  }
-
-  extractDescription() {
-    // First, try to get description from YouTube's embedded JSON data
-    const jsonDescription = this.extractDescriptionFromInitialData();
-    if (jsonDescription && jsonDescription.length > 10) {
-      return jsonDescription;
-    }
-
-    // Fallback to DOM scraping if JSON extraction fails
-    return this.extractDescriptionFromDOM();
-  }
-
-  extractDescriptionFromInitialData() {
-    // Try accessing the global variable first (faster)
-    if (typeof ytInitialPlayerResponse !== "undefined" && ytInitialPlayerResponse) {
-      const desc = ytInitialPlayerResponse?.videoDetails?.shortDescription;
-      if (desc) return desc;
-    }
-
-    // Parse from script tags if global variable not available
+  extractDescriptionForVideo(videoId) {
+    // Parse ytInitialPlayerResponse from script tags
     const scripts = document.querySelectorAll("script");
     for (const script of scripts) {
       const text = script.textContent;
@@ -107,8 +88,12 @@ class AmazonLinkFinder {
         if (match) {
           try {
             const data = JSON.parse(match[1]);
-            const desc = data?.videoDetails?.shortDescription;
-            if (desc) return desc;
+            const responseVideoId = data?.videoDetails?.videoId;
+            // Only use if video ID matches
+            if (responseVideoId === videoId) {
+              const desc = data?.videoDetails?.shortDescription;
+              if (desc) return desc;
+            }
           } catch (e) {
             console.log("Failed to parse ytInitialPlayerResponse", e);
           }
@@ -116,7 +101,8 @@ class AmazonLinkFinder {
       }
     }
 
-    return null;
+    // Fallback to DOM scraping
+    return this.extractDescriptionFromDOM();
   }
 
   extractDescriptionFromDOM() {
@@ -219,7 +205,7 @@ class AmazonLinkFinder {
           `).join("")}
         </div>`
       : `<div class="amazon-links-empty">
-          There's no amazon affiliate links found
+          For amazon links of this video, reload the page
         </div>`;
 
     overlay.innerHTML = `

@@ -176,6 +176,13 @@
   text-align: center;
 }
 
+.tubeboost-top-right-summary .reload-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #aaa;
+  font-style: normal;
+}
+
 .tubeboost-top-right-summary .header-actions {
   display: flex;
   align-items: center;
@@ -384,6 +391,10 @@
     color: #999;
   }
 
+  .tubeboost-top-right-summary .reload-hint {
+    color: #666;
+  }
+
   .tubeboost-top-right-summary .overlay-footer {
     background: #1a1a1a;
     border-top-color: #404040;
@@ -435,6 +446,10 @@ html[dark] .tubeboost-top-right-summary .amazon-link-icon {
 
 html[dark] .tubeboost-top-right-summary .amazon-links-empty {
   color: #999;
+}
+
+html[dark] .tubeboost-top-right-summary .reload-hint {
+  color: #666;
 }
 
 html[dark] .tubeboost-top-right-summary .overlay-footer {
