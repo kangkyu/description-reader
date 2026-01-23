@@ -5,7 +5,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  width: 350px;
+  width: 420px;
   max-width: 90vw;
   background: #ffffff;
   border: 1px solid #e1e5e9;
@@ -67,11 +67,13 @@
 
 .tubeboost-top-right-summary .summary-content {
   padding: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: #3c4043;
   font-size: 14px;
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .tubeboost-top-right-summary.error .summary-content {
@@ -100,6 +102,195 @@
   color: #1976d2;
   text-align: center;
   font-weight: 500;
+}
+
+/* Amazon Links Section */
+.tubeboost-top-right-summary .amazon-links-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #fffbf0;
+}
+
+.tubeboost-top-right-summary .amazon-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #ffe0a0;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #232f3e;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.tubeboost-top-right-summary .amazon-link:hover {
+  background: #fff8e8;
+  border-color: #ff9900;
+  transform: translateX(2px);
+}
+
+.tubeboost-top-right-summary .amazon-link-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #ff9900;
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tubeboost-top-right-summary .amazon-link-url {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.tubeboost-top-right-summary .amazon-link-icon {
+  flex-shrink: 0;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.tubeboost-top-right-summary .amazon-link:hover .amazon-link-icon {
+  color: #ff9900;
+}
+
+.tubeboost-top-right-summary .amazon-links-empty {
+  padding: 12px 16px;
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+}
+
+.tubeboost-top-right-summary .reload-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #aaa;
+  font-style: normal;
+}
+
+.tubeboost-top-right-summary .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tubeboost-top-right-summary .save-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tubeboost-top-right-summary .save-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tubeboost-top-right-summary .save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.tubeboost-top-right-summary .save-btn.saved {
+  background: #4caf50;
+}
+
+.tubeboost-top-right-summary .saving-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+.tubeboost-top-right-summary .overlay-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e1e5e9;
+  text-align: center;
+  background: #f8f9fa;
+}
+
+.tubeboost-top-right-summary .view-all-link {
+  background: none;
+  border: none;
+  color: #ff9900;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.tubeboost-top-right-summary .view-all-link:hover {
+  color: #e68a00;
+  text-decoration: underline;
+}
+
+.tubeboost-top-right-summary .summary-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tubeboost-top-right-summary .summary-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tubeboost-top-right-summary .summary-save-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tubeboost-top-right-summary .summary-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.tubeboost-top-right-summary .summary-save-btn.saved {
+  background: #4caf50;
+}
+
+.tubeboost-top-right-summary .save-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Loading Indicator */
@@ -172,6 +363,42 @@
   .tubeboost-top-right-summary .summary-content::-webkit-scrollbar-thumb {
     background: #666666;
   }
+
+  .tubeboost-top-right-summary .amazon-links-list {
+    background: #2a2518;
+  }
+
+  .tubeboost-top-right-summary .amazon-link {
+    background: #1a1a1a;
+    border-color: #5a4a30;
+    color: #e1e1e1;
+  }
+
+  .tubeboost-top-right-summary .amazon-link:hover {
+    background: #2a2518;
+    border-color: #ff9900;
+  }
+
+  .tubeboost-top-right-summary .amazon-link-url {
+    color: #ccc;
+  }
+
+  .tubeboost-top-right-summary .amazon-link-icon {
+    color: #666;
+  }
+
+  .tubeboost-top-right-summary .amazon-links-empty {
+    color: #999;
+  }
+
+  .tubeboost-top-right-summary .reload-hint {
+    color: #666;
+  }
+
+  .tubeboost-top-right-summary .overlay-footer {
+    background: #1a1a1a;
+    border-top-color: #404040;
+  }
 }
 
 /* YouTube dark theme support */
@@ -194,6 +421,42 @@ html[dark] .tubeboost-top-right-loading {
   border-color: #404040;
 }
 
+html[dark] .tubeboost-top-right-summary .amazon-links-list {
+  background: #2a2518;
+}
+
+html[dark] .tubeboost-top-right-summary .amazon-link {
+  background: #1a1a1a;
+  border-color: #5a4a30;
+  color: #e1e1e1;
+}
+
+html[dark] .tubeboost-top-right-summary .amazon-link:hover {
+  background: #2a2518;
+  border-color: #ff9900;
+}
+
+html[dark] .tubeboost-top-right-summary .amazon-link-url {
+  color: #ccc;
+}
+
+html[dark] .tubeboost-top-right-summary .amazon-link-icon {
+  color: #666;
+}
+
+html[dark] .tubeboost-top-right-summary .amazon-links-empty {
+  color: #999;
+}
+
+html[dark] .tubeboost-top-right-summary .reload-hint {
+  color: #666;
+}
+
+html[dark] .tubeboost-top-right-summary .overlay-footer {
+  background: #1a1a1a;
+  border-top-color: #404040;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .tubeboost-top-right-summary {
@@ -212,7 +475,7 @@ html[dark] .tubeboost-top-right-loading {
   }
 
   .tubeboost-top-right-summary .summary-content {
-    max-height: 150px;
+    max-height: 300px;
     font-size: 13px;
   }
 }

@@ -3,16 +3,18 @@
   "name": "YouTube Description Summarizer",
   "version": "1.0.0",
   "description": "Get instant AI-powered summaries of YouTube video descriptions. Automatically appears in top-right corner when watching videos with long descriptions.",
-  "permissions": ["activeTab", "storage", "notifications"],
+  "permissions": ["activeTab", "storage", "notifications", "scripting"],
   "host_permissions": [
     "https://*.youtube.com/*",
     "https://generativelanguage.googleapis.com/*",
-    "https://www.googleapis.com/*"
+    "https://www.googleapis.com/*",
+    "http://localhost:3000/*",
+    "https://description-reader-6b91f0030541.herokuapp.com/*"
   ],
   "content_scripts": [
     {
       "matches": ["https://*.youtube.com/*"],
-      "js": ["content/content.js"],
+      "js": ["config.js", "content/content.js"],
       "css": ["content/content.css"],
       "run_at": "document_end"
     }

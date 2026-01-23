@@ -1,16 +1,19 @@
 // Background Script for YouTube Description Summarizer
 
+importScripts("config.js");
+const API_BASE_URL = CONFIG.API_BASE_URL;
+
 class DescriptionSummarizerBackground {
   constructor() {
     this.geminiApiKey = null;
-    this.youtubeApiKey = null;
+    this.authToken = null;
     this.init();
   }
 
   init() {
     console.log("Description Summarizer: Background script loaded");
     this.setupEventListeners();
-    this.loadApiKey();
+    this.loadSettings();
   }
 
   setupEventListeners() {
@@ -28,16 +31,14 @@ class DescriptionSummarizerBackground {
     });
   }
 
-  async loadApiKey() {
+  async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get([
-        "geminiApiKey",
-        "youtubeApiKey",
-      ]);
+      const result = await chrome.storage.sync.get(["geminiApiKey", "authToken", "userEmail"]);
       this.geminiApiKey = result.geminiApiKey;
-      this.youtubeApiKey = result.youtubeApiKey;
+      this.authToken = result.authToken;
+      this.userEmail = result.userEmail;
     } catch (error) {
-      console.error("Error loading API keys:", error);
+      console.error("Error loading settings:", error);
     }
   }
 
@@ -49,28 +50,96 @@ class DescriptionSummarizerBackground {
 
       case "setApiKey":
         await this.setApiKey(request.apiKey, sendResponse);
-        await this.loadApiKey(); // Reload keys after setting
+        await this.loadSettings();
         break;
 
       case "getApiKey":
         sendResponse({ success: true, apiKey: this.geminiApiKey });
         break;
 
-      case "getVideoDescription":
-        await this.getVideoDescription(request.videoId, sendResponse);
+      case "getAuthStatus":
+        await this.loadSettings();
+        sendResponse({ success: true, isLoggedIn: !!this.authToken, token: this.authToken });
         break;
 
-      case "setYouTubeApiKey":
-        await this.setYouTubeApiKey(request.apiKey, sendResponse);
-        await this.loadApiKey(); // Reload keys after setting
+      case "getWebLoginCode":
+        await this.getWebLoginCode(sendResponse);
         break;
 
-      case "getYouTubeApiKey":
-        sendResponse({ success: true, apiKey: this.youtubeApiKey });
+      case "saveSummary":
+        await this.saveSummary(request.data, sendResponse);
+        break;
+
+      case "openVideosPage":
+        await this.openVideosPage(sendResponse);
         break;
 
       default:
         sendResponse({ success: false, error: "Unknown action" });
+    }
+  }
+
+  async openVideosPage(sendResponse) {
+    try {
+      await this.loadSettings();
+
+      let videosUrl = `${API_BASE_URL}/videos`;
+
+      // Pass token via URL hash (not sent to server)
+      if (this.authToken) {
+        const params = new URLSearchParams();
+        params.set("token", this.authToken);
+        if (this.userEmail) params.set("email", this.userEmail);
+        videosUrl += "#" + params.toString();
+      }
+
+      await chrome.tabs.create({ url: videosUrl });
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error("Error opening videos page:", error);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  async saveSummary(data, sendResponse) {
+    try {
+      await this.loadSettings();
+
+      if (!this.authToken) {
+        sendResponse({ success: false, error: "Not logged in. Please login in extension options." });
+        return;
+      }
+
+      // Build amazon_links_attributes for nested attributes
+      const amazonLinksAttributes = (data.amazonLinks || []).map((url) => ({ url }));
+
+      const response = await fetch(`${API_BASE_URL}/summaries`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.authToken}`,
+        },
+        body: JSON.stringify({
+          video_id: data.videoId,
+          video_title: data.videoTitle,
+          summary_text: data.summaryText,
+          video_url: data.videoUrl,
+          amazon_links_attributes: amazonLinksAttributes,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        sendResponse({ success: true, summary: result });
+      } else if (response.status === 401) {
+        sendResponse({ success: false, error: "Session expired. Please login again." });
+      } else {
+        const error = await response.json();
+        sendResponse({ success: false, error: error.errors?.join(", ") || "Failed to save summary." });
+      }
+    } catch (error) {
+      console.error("Error saving summary:", error);
+      sendResponse({ success: false, error: "Network error. Is the server running?" });
     }
   }
 
@@ -117,7 +186,7 @@ ${description}
 Summary:`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.geminiApiKey}`,
       {
         method: "POST",
         headers: {
@@ -135,7 +204,7 @@ Summary:`;
           ],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 200,
+            maxOutputTokens: 1024,
             topP: 0.8,
             topK: 40,
           },
@@ -182,92 +251,6 @@ Summary:`;
     } catch (error) {
       console.error("Error saving API key:", error);
       sendResponse({ success: false, error: error.message });
-    }
-  }
-
-  async setYouTubeApiKey(apiKey, sendResponse) {
-    try {
-      await chrome.storage.sync.set({ youtubeApiKey: apiKey });
-      this.youtubeApiKey = apiKey;
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error("Error saving YouTube API key:", error);
-      sendResponse({ success: false, error: error.message });
-    }
-  }
-
-  async getVideoDescription(videoId, sendResponse) {
-    try {
-      // Debug: Check if API key is loaded
-      console.log("YouTube API Key loaded:", !!this.youtubeApiKey);
-      console.log(
-        "YouTube API Key length:",
-        this.youtubeApiKey ? this.youtubeApiKey.length : 0,
-      );
-
-      if (!this.youtubeApiKey) {
-        // Try to reload API keys in case they weren't loaded
-        await this.loadApiKey();
-        console.log(
-          "After reload - YouTube API Key loaded:",
-          !!this.youtubeApiKey,
-        );
-
-        if (!this.youtubeApiKey) {
-          sendResponse({
-            success: false,
-            error:
-              "YouTube API key not configured. Please set it in extension options.",
-          });
-          return;
-        }
-      }
-
-      if (!videoId) {
-        sendResponse({
-          success: false,
-          error: "Invalid video ID.",
-        });
-        return;
-      }
-
-      // Call YouTube Data API
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${this.youtubeApiKey}`,
-      );
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error("YouTube API quota exceeded or invalid API key.");
-        } else if (response.status === 400) {
-          throw new Error("Invalid video ID or API request.");
-        } else {
-          throw new Error(`YouTube API error: ${response.status}`);
-        }
-      }
-
-      const data = await response.json();
-
-      if (!data.items || data.items.length === 0) {
-        sendResponse({
-          success: false,
-          error: "Video not found or is private/unavailable.",
-        });
-        return;
-      }
-
-      const description = data.items[0].snippet.description || "";
-
-      sendResponse({
-        success: true,
-        description: description,
-      });
-    } catch (error) {
-      console.error("Error getting video description:", error);
-      sendResponse({
-        success: false,
-        error: "Failed to get video description: " + error.message,
-      });
     }
   }
 
