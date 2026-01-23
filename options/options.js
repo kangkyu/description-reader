@@ -1,6 +1,6 @@
 // Options Page JavaScript for YouTube Description Summarizer
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
 
 class SummarizerOptions {
   constructor() {
