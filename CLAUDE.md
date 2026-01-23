@@ -48,7 +48,7 @@ The extension communicates with a Rails backend (URL configured in `API_BASE_URL
 
 1. Load extension: `chrome://extensions/` > Enable Developer mode > Load unpacked > Select this folder
 2. After code changes: Click refresh icon on extension card in `chrome://extensions/`
-3. Toggle `API_BASE_URL` between localhost and production in both `content.js` and `background.js`
+3. To use localhost, edit `config.js` (use `git update-index --assume-unchanged config.js` to ignore local changes)
 4. Test on YouTube video pages that have Amazon links in their descriptions
 
 ## API Setup

@@ -1,7 +1,7 @@
 // Background Script for YouTube Description Summarizer
 
-const API_BASE_URL = "https://description-reader-6b91f0030541.herokuapp.com";
-// const API_BASE_URL = "http://localhost:3000";
+importScripts("config.js");
+const API_BASE_URL = CONFIG.API_BASE_URL;
 
 class DescriptionSummarizerBackground {
   constructor() {
