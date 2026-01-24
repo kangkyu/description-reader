@@ -1,14 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Description Summarizer",
+  "name": "YouTube Description Reader",
   "version": "1.0.0",
-  "description": "Get instant AI-powered summaries of YouTube video descriptions. Automatically appears in top-right corner when watching videos with long descriptions.",
+  "description": "Extracts Amazon affiliate links from YouTube video descriptions and displays them in an overlay after page reload.",
   "permissions": ["activeTab", "storage", "notifications", "scripting"],
   "host_permissions": [
     "https://*.youtube.com/*",
     "https://generativelanguage.googleapis.com/*",
-    "https://www.googleapis.com/*",
-    "http://localhost:3000/*",
     "https://description-reader-6b91f0030541.herokuapp.com/*"
   ],
   "content_scripts": [
