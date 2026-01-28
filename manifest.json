@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "YouTube Description Reader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Extracts Amazon affiliate links from YouTube video descriptions and displays them in an overlay after page reload.",
   "permissions": ["activeTab", "storage", "notifications", "scripting"],
   "host_permissions": [
     "https://*.youtube.com/*",
     "https://generativelanguage.googleapis.com/*",
-    "https://description-reader-6b91f0030541.herokuapp.com/*"
+    "https://descriptionreader.com/*"
   ],
   "content_scripts": [
     {
