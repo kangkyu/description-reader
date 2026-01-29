@@ -262,7 +262,7 @@ Summary:`;
     chrome.notifications.create({
       type: "basic",
       iconUrl: "icons/icon48.png",
-      title: "YouTube Description Summarizer",
+      title: "YouTube Description Reader",
       message:
         "Welcome! Please set up your Gemini API key in the options to start summarizing descriptions.",
     });

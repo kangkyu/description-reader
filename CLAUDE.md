@@ -48,10 +48,10 @@ The extension communicates with a Rails backend (URL configured in `API_BASE_URL
 
 1. Load extension: `chrome://extensions/` > Enable Developer mode > Load unpacked > Select this folder
 2. After code changes: Click refresh icon on extension card in `chrome://extensions/`
-3. Toggle `API_BASE_URL` between localhost and production in both `content.js` and `background.js`
+3. Toggle `API_BASE_URL` between localhost and production in `content.js`, `background.js`, and `options.js`
 4. Test on YouTube video pages that have Amazon links in their descriptions
 
 ## API Setup
 
-- **Gemini API key**: Get at https://makersuite.google.com/app/apikey (required for summary generation)
+- **Gemini API key**: Get at https://makersuite.google.com/app/apikey (required for summary generation). Uses `gemini-2.5-flash` model.
 - **Backend account**: Register via extension options page (required for saving videos)

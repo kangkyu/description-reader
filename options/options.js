@@ -1,4 +1,4 @@
-// Options Page JavaScript for YouTube Description Summarizer
+// Options Page JavaScript for YouTube Description Reader
 
 const API_BASE_URL = "https://descriptionreader.com";
 // const API_BASE_URL = "http://localhost:3000";
@@ -263,11 +263,8 @@ class SummarizerOptions {
     this.setButtonLoading(saveButton, true);
 
     try {
-      // Save to storage - preserve existing YouTube API key
-      const currentData = await chrome.storage.sync.get(["youtubeApiKey"]);
       await chrome.storage.sync.set({
         geminiApiKey: apiKey,
-        youtubeApiKey: currentData.youtubeApiKey || this.youtubeApiKey,
       });
       this.apiKey = apiKey;
 
